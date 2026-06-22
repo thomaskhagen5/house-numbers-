@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lake Property Decision Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --water:#13202c; --water-2:#1b2e3d; --parchment:#f3eee4; --card:#fbf8f1;
+    --ink:#1d2329; --slate:#5d6b78; --line:#e0d8c8;
+    --go:#2c6b4f; --hold:#a9761a; --heavy:#9d2f28;
+    --brass:#b98a3e;
+    --r:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--parchment); color:var(--ink); line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px 80px}
+
+  /* Header */
+  header{background:var(--water);color:#eef3f0;position:relative;overflow:hidden}
+  header .hwrap{max-width:1080px;margin:0 auto;padding:30px 18px 34px;position:relative;z-index:2}
+  header svg{position:absolute;inset:0;width:100%;height:100%;opacity:.16;z-index:1}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);font-weight:500}
+  header h1{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:clamp(26px,5vw,40px);line-height:1.08;margin:8px 0 6px;letter-spacing:-.01em}
+  header p{color:#b9c6cf;font-size:14px;max-width:60ch}
+
+  /* Verdict */
+  .verdict{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    margin-top:-22px;position:relative;z-index:3;box-shadow:0 12px 34px rgba(19,32,44,.14);
+    padding:22px 24px;
+  }
+  .verdict .vlabel{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--slate)}
+  .verdict .vline{font-family:'Fraunces',Georgia,serif;font-size:clamp(22px,4.4vw,32px);font-weight:500;line-height:1.12;margin:6px 0 2px}
+  .verdict.go .vline{color:var(--go)} .verdict.hold .vline{color:var(--hold)} .verdict.heavy .vline{color:var(--heavy)}
+  .verdict .vsub{color:var(--slate);font-size:14px}
+  .carrygrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  .carry{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}
+  .carry .who{font-size:12px;color:var(--slate);font-weight:500}
+  .carry .amt{font-family:'IBM Plex Mono',monospace;font-size:clamp(19px,3.6vw,24px);font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+  .carry .note{font-size:11px;color:var(--slate);margin-top:3px}
+  .pos{color:var(--go)} .neg{color:var(--heavy)}
+
+  /* Layout */
+  .cols{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;margin-top:24px}
+  @media(max-width:860px){.cols{grid-template-columns:1fr}.carrygrid{grid-template-columns:1fr}}
+
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 18px 6px}
+  .panel h2{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:19px;margin-bottom:2px}
+  .panel .ph{color:var(--slate);font-size:12.5px;margin-bottom:14px}
+  .sect{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);
+        font-weight:500;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12.5px;font-weight:500;color:var(--ink);margin-bottom:4px}
+  .field .hint{font-size:11px;color:var(--slate);font-weight:400}
+  .inwrap{position:relative;display:flex;align-items:center}
+  .inwrap .pre{position:absolute;left:11px;color:var(--slate);font-family:'IBM Plex Mono',monospace;font-size:14px;pointer-events:none}
+  .inwrap .suf{position:absolute;right:11px;color:var(--slate);font-family:'IBM Plex Mono',monospace;font-size:13px;pointer-events:none}
+  input[type=number]{
+    width:100%;font-family:'IBM Plex Mono',monospace;font-size:15px;font-variant-numeric:tabular-nums;
+    padding:9px 12px 9px 24px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);
+  }
+  input.padr{padding-right:34px}
+  input[type=number]:focus{outline:2px solid var(--brass);outline-offset:1px;border-color:transparent}
+  input[type=number].nopre{padding-left:12px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .toggles{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 6px}
+  .chip{font-size:12px;font-weight:500;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;cursor:pointer;color:var(--slate);font-family:inherit}
+  .chip.on{background:var(--water);color:#fff;border-color:var(--water)}
+  .checkrow{display:flex;align-items:center;gap:9px;margin:4px 0 12px;cursor:pointer}
+  .checkrow input{width:18px;height:18px;accent-color:var(--water)}
+  .checkrow span{font-size:13px;font-weight:500}
+  details.adv{margin:6px 0 14px;border-top:1px solid var(--line);padding-top:10px}
+  details.adv summary{font-size:12px;color:var(--slate);cursor:pointer;font-weight:500;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em}
+  details.adv[open] summary{margin-bottom:12px}
+
+  /* Results */
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:11px;overflow:hidden;margin-bottom:14px}
+  .metric{background:#fff;padding:12px 14px}
+  .metric .k{font-size:11.5px;color:var(--slate);font-weight:500}
+  .metric .v{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+  .metric .vs{font-size:11px;color:var(--slate);margin-top:1px}
+  .taxbox{background:var(--water);color:#eaf1ee;border-radius:11px;padding:15px 16px;margin-bottom:14px}
+  .taxbox .th{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin-bottom:9px}
+  .taxrow{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.09);font-size:13px}
+  .taxrow:last-child{border-bottom:none}
+  .taxrow .tv{font-family:'IBM Plex Mono',monospace;font-weight:600;font-variant-numeric:tabular-nums}
+  .taxrow.big .tv{font-size:17px;color:#fff}
+  .taxrow .muted{color:#9fb2bd;font-size:11px}
+
+  table.proj{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+  table.proj th,table.proj td{padding:7px 6px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-family:'IBM Plex Mono',monospace}
+  table.proj th{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--slate);font-weight:500;font-family:'Inter',sans-serif}
+  table.proj td:first-child,table.proj th:first-child{text-align:left;font-family:'Inter',sans-serif;font-weight:500;color:var(--ink)}
+
+  .foot{margin-top:24px;font-size:11.5px;color:var(--slate);line-height:1.6;border-top:1px solid var(--line);padding-top:16px}
+  .foot b{color:var(--ink)}
+  .btnreset{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--slate);background:none;border:1px solid var(--line);
+    border-radius:8px;padding:7px 11px;cursor:pointer;margin-top:6px}
+  .btnreset:hover{border-color:var(--brass);color:var(--ink)}
+  .flag{font-size:11px;color:var(--hold);margin-top:6px;font-weight:500}
+</style>
+</head>
+<body>
+<header>
+  <svg viewBox="0 0 1080 200" preserveAspectRatio="none" aria-hidden="true">
+    <g fill="none" stroke="#7fa3b5" stroke-width="1">
+      <path d="M0,150 C180,120 360,170 540,140 C720,110 900,160 1080,130"/>
+      <path d="M0,165 C180,138 360,184 540,156 C720,128 900,174 1080,146"/>
+      <path d="M0,120 C200,95 380,140 560,112 C740,84 920,128 1080,100"/>
+      <path d="M0,95 C220,72 400,112 580,88 C760,64 940,104 1080,80"/>
+      <path d="M0,70 C240,50 420,86 600,64 C780,42 960,80 1080,58"/>
+    </g>
+  </svg>
+  <div class="hwrap">
+    <div class="eyebrow">Lobster Lake &middot; Underwriting</div>
+    <h1>Does the lake place carry?</h1>
+    <p>Enter your numbers. It computes the cash carry, the year-one tax benefit using real federal and Minnesota brackets, and tells you — plainly — whether it pays for itself or how much you'd subsidize it.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- VERDICT -->
+  <div class="verdict" id="verdict">
+    <div class="vlabel">Determination</div>
+    <div class="vline" id="vline">&mdash;</div>
+    <div class="vsub" id="vsub"></div>
+    <div class="carrygrid">
+      <div class="carry">
+        <div class="who">Your monthly carry &middot; pre-tax</div>
+        <div class="amt" id="cYou">&mdash;</div>
+        <div class="note" id="cYouNote">after Year-1 tax help shown below</div>
+      </div>
+      <div class="carry">
+        <div class="who">Father-in-law &middot; monthly</div>
+        <div class="amt" id="cFil">&mdash;</div>
+        <div class="note" id="cFilNote">no current tax relief — releases at sale</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <!-- INPUTS -->
+    <div class="panel">
+      <h2>Your numbers</h2>
+      <div class="ph">Defaults show the recommended $1.25M furnished deal. Change anything.</div>
+
+      <div class="sect">Property &amp; financing</div>
+      <div class="field">
+        <label>Purchase price</label>
+        <div class="inwrap"><span class="pre">$</span><input type="number" id="price" value="1250000" step="10000"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Your cash in</label>
+          <div class="inwrap"><span class="pre">$</span><input type="number" id="yourCash" value="150000" step="5000"></div></div>
+        <div class="field"><label>FIL cash in</label>
+          <div class="inwrap"><span class="pre">$</span><input type="number" id="filCash" value="150000" step="5000"></div></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Interest rate</label>
+          <div class="inwrap"><input type="number" id="rate" value="6.75" step="0.125" class="nopre padr"><span class="suf">%</span></div></div>
+        <div class="field"><label>Loan term</label>
+          <div class="inwrap"><input type="number" id="term" value="30" step="1" class="nopre padr"><span class="suf">yrs</span></div></div>
+      </div>
+      <div class="field"><label>Your ownership share <span class="hint">— 50% = even split; 100% = you own it, FIL lends</span></label>
+        <div class="inwrap"><input type="number" id="ownership" value="50" step="5" class="nopre padr"><span class="suf">%</span></div></div>
+
+      <div class="sect">Operating (annual)</div>
+      <div class="field"><label>Gross rental revenue</label>
+        <div class="toggles">
+          <button class="chip" data-rev="84000">Year 1 · $84k</button>
+          <button class="chip on" data-rev="120000">Base · $120k</button>
+          <button class="chip" data-rev="165000">Upside · $165k</button>
+        </div>
+        <div class="inwrap"><span class="pre">$</span><input type="number" id="revenue" value="120000" step="5000"></div></div>
+      <div class="row2">
+        <div class="field"><label>Operating expenses</label>
+          <div class="inwrap"><span class="pre">$</span><input type="number" id="opex" value="65500" step="2500"></div></div>
+        <div class="field"><label>Capital reserve</label>
+          <div class="inwrap"><span class="pre">$</span><input type="number" id="reserve" value="12500" step="2500"></div></div>
+      </div>
+
+      <div class="sect">Income &amp; tax</div>
+      <div class="field"><label>Your taxable income last year <span class="hint">— sets your marginal bracket</span></label>
+        <div class="inwrap"><span class="pre">$</span><input type="number" id="income" value="504000" step="10000"></div></div>
+      <div class="field"><label>FIL taxable income <span class="hint">— ~$171k tax ≈ this income; he's ~35% bracket</span></label>
+        <div class="inwrap"><span class="pre">$</span><input type="number" id="filIncome" value="560000" step="10000"></div></div>
+      <label class="checkrow"><input type="checkbox" id="furnished" checked><span>Sold fully furnished (adds furniture to bonus depreciation)</span></label>
+      <label class="checkrow"><input type="checkbox" id="matpart" checked><span>You materially participate (your losses usable now)</span></label>
+      <label class="checkrow"><input type="checkbox" id="filuses" checked><span>FIL can use his share now (he participates or has passive income)</span></label>
+
+      <details class="adv">
+        <summary>Advanced — depreciation assumptions</summary>
+        <div class="row2">
+          <div class="field"><label>Land (non-depreciable)</label>
+            <div class="inwrap"><input type="number" id="landpct" value="35" step="1" class="nopre padr"><span class="suf">%</span></div></div>
+          <div class="field"><label>Cost-seg reclass</label>
+            <div class="inwrap"><input type="number" id="costseg" value="27" step="1" class="nopre padr"><span class="suf">%</span></div></div>
+        </div>
+        <div class="field"><label>Furnishings value (if furnished)</label>
+          <div class="inwrap"><span class="pre">$</span><input type="number" id="ffe" value="120000" step="10000"></div></div>
+      </details>
+      <button class="btnreset" id="reset">Reset to recommended deal</button>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="panel">
+      <h2>What the numbers say</h2>
+      <div class="ph">Single-year economics at the revenue you entered.</div>
+
+      <div class="metrics">
+        <div class="metric"><div class="k">Bank loan</div><div class="v" id="mLoan">—</div><div class="vs" id="mLtv"></div></div>
+        <div class="metric"><div class="k">Annual debt service</div><div class="v" id="mDebt">—</div><div class="vs">principal &amp; interest</div></div>
+        <div class="metric"><div class="k">Property cash flow</div><div class="v" id="mCF">—</div><div class="vs">before tax</div></div>
+        <div class="metric"><div class="k">Break-even revenue</div><div class="v" id="mBE">—</div><div class="vs">to cover costs + debt</div></div>
+      </div>
+
+      <div class="taxbox">
+        <div class="th">Year-1 tax benefit · split 50/50</div>
+        <div class="taxrow"><span>You — federal</span><span class="tv" id="tFed">—</span></div>
+        <div class="taxrow"><span>You — Minnesota <span class="muted">(after add-back)</span></span><span class="tv" id="tMn">—</span></div>
+        <div class="taxrow"><span>You — total</span><span class="tv" id="tYou">—</span></div>
+        <div class="taxrow"><span>Father-in-law — fed + MN</span><span class="tv" id="tFilBen">—</span></div>
+        <div class="taxrow big"><span>Family total Year-1</span><span class="tv" id="tFam">—</span></div>
+        <div class="taxrow"><span class="muted">Your / FIL after-tax (yr 1)</span><span class="tv" id="tAfter">—</span></div>
+      </div>
+      <div class="flag" id="capflag" style="display:none"></div>
+
+      <div class="sect" style="color:var(--slate);border-color:var(--line)">Five-year arc (revenue ramps, FIL losses bank)</div>
+      <table class="proj">
+        <thead><tr><th>Year</th><th>Revenue</th><th>You after-tax</th><th>FIL after-tax</th><th>FIL loss bank</th></tr></thead>
+        <tbody id="projBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>How it computes.</b> Loan = price minus the cash you both put in. Debt service is a standard amortization. The tax benefit runs your taxable income through real 2026 federal and Minnesota brackets with and without your share of the loss — not a flat rate — and applies Minnesota's 80% bonus-depreciation add-back, so the state benefit is small in year one and recovers over five years. The federal excess-business-loss cap ($512k joint, 2026) is applied. Your father-in-law's losses are treated as passive and suspended; they bank up and release at sale.<br><br>
+    <b>This is a planning estimate, not advice.</b> It doesn't model NIIT, QBI, at-risk basis, the actual depreciation schedule, or your full return. CLA must run a real 2026 pro forma, Douglas County must confirm the property tax and licensed guest capacity, and a Minnesota estate attorney should paper the structure before you rely on any of it.
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>(n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString();
+const fmt0=n=>'$'+Math.round(n).toLocaleString();
+
+// 2026 MFJ brackets (estimates)
+const FED=[[0,.10],[23850,.12],[96950,.22],[206700,.24],[394600,.32],[501050,.35],[751600,.37]];
+const MN=[[0,.0535],[47620,.068],[189180,.0785],[330410,.0985]];
+function tax(inc,br){inc=Math.max(0,inc);let t=0;for(let i=0;i<br.length;i++){const lo=br[i][0],hi=i+1<br.length?br[i+1][0]:Infinity,rate=br[i][1];if(inc>lo)t+=(Math.min(inc,hi)-lo)*rate;else break;}return t;}
+function year1Interest(loan,rate,term){const mr=rate/12,n=term*12;if(mr<=0)return 0;const pmt=loan*mr/(1-Math.pow(1+mr,-n));let bal=loan,intr=0;for(let m=0;m<12;m++){const i=bal*mr;intr+=i;bal-=(pmt-i);}return intr;}
+function annualDebt(loan,rate,term){const mr=rate/12,n=term*12;if(mr<=0)return loan/term;return loan*mr/(1-Math.pow(1+mr,-n))*12;}
+const CAP=512000; // 461(l) MFJ 2026
+
+function num(id){const v=parseFloat($(id).value);return isNaN(v)?0:v;}
+
+function calc(){
+  const price=num('price'), yourCash=num('yourCash'), filCash=num('filCash');
+  const rate=num('rate')/100, term=num('term')||30;
+  const own=Math.min(1,Math.max(0,num('ownership')/100));
+  const revenue=num('revenue'), opex=num('opex'), reserve=num('reserve');
+  const income=num('income');
+  const furnished=$('furnished').checked, matpart=$('matpart').checked;
+  const landpct=num('landpct')/100, costseg=num('costseg')/100, ffe=furnished?num('ffe'):0;
+
+  const equity=yourCash+filCash;
+  const loan=Math.max(0,price-equity);
+  const ltv=price>0?loan/price:0;
+  const debt=annualDebt(loan,rate,term);
+  const i1=year1Interest(loan,rate,term);
+
+  const cf=revenue-opex-reserve-debt;              // property cash flow pre-tax
+  const yourCF=cf*own, filCF=cf*(1-own);
+  const breakeven=opex+reserve+debt;
+
+  // Depreciation year 1
+  const building=price*(1-landpct);
+  const csBonus=building*costseg;
+  const slY1=(building-csBonus)/27.5*0.5;
+  const fedDep=csBonus+ffe+slY1;
+  const bonus=csBonus+ffe;
+
+  // Federal taxable loss (interest deductible, not principal/reserve)
+  const fedLossWhole=revenue-opex-i1-fedDep;
+  let yourFedDeduct=matpart?Math.max(0,-(fedLossWhole*own)):0;
+  let capped=false;
+  if(yourFedDeduct>CAP){yourFedDeduct=CAP;capped=true;}
+  const fedBen=tax(income,FED)-tax(income-yourFedDeduct,FED);
+
+  // Minnesota: add back 80% of bonus in year 1
+  const mnDep=fedDep-bonus*0.80;
+  const mnLossWhole=revenue-opex-i1-mnDep;
+  const yourMnDeduct=matpart?Math.max(0,-(mnLossWhole*own)):0;
+  const mnBen=tax(income,MN)-tax(income-yourMnDeduct,MN);
+
+  const yourBen=fedBen+mnBen;
+  const yourAfter=yourCF+yourBen;
+
+  // Father-in-law's half — only usable if he participates or has passive income
+  const filIncome=num('filIncome');
+  const filUses=$('filuses').checked;
+  let filFedBen=0, filMnBen=0;
+  if(filUses){
+    const filFedDeduct=Math.min(CAP,Math.max(0,-(fedLossWhole*(1-own))));
+    filFedBen=tax(filIncome,FED)-tax(filIncome-filFedDeduct,FED);
+    const filMnDeduct=Math.max(0,-(mnLossWhole*(1-own)));
+    filMnBen=tax(filIncome,MN)-tax(filIncome-filMnDeduct,MN);
+  }
+  const filBen=filFedBen+filMnBen;
+  const filAfter=filCF+filBen;
+  const familyBen=yourBen+filBen;
+
+  // ---- verdict ----
+  const v=$('verdict'),vl=$('vline'),vs=$('vsub');
+  v.classList.remove('go','hold','heavy');
+  if(cf>=0){
+    v.classList.add('go');
+    vl.textContent='It carries itself.';
+    vs.textContent='At this revenue the property covers its costs and debt, throwing off '+fmt(cf)+'/yr before tax.';
+  } else {
+    const permo=Math.abs(cf)/12;
+    if(permo<=1500*2){ v.classList.add('hold'); vl.textContent='A carry you can live with.'; }
+    else { v.classList.add('heavy'); vl.textContent='A heavy subsidy.'; }
+    vs.textContent='It runs short by '+fmt(cf)+'/yr — a subsidy you choose to carry for a long-term asset, not income.';
+  }
+  $('cYou').textContent=fmt(yourCF/12); $('cYou').className='amt '+(yourCF>=0?'pos':'neg');
+  $('cFil').textContent=fmt(filCF/12); $('cFil').className='amt '+(filCF>=0?'pos':'neg');
+  $('cYouNote').textContent='Year-1 after tax: '+fmt(yourAfter/12)+'/mo';
+  $('cFilNote').textContent=filUses?('Year-1 after tax: '+fmt(filAfter/12)+'/mo'):'no current tax relief — releases at sale';
+
+  // ---- metrics ----
+  $('mLoan').textContent=fmt0(loan); $('mLtv').textContent=(ltv*100).toFixed(0)+'% of price';
+  $('mDebt').textContent=fmt0(debt);
+  $('mCF').textContent=fmt(cf); $('mCF').className='v '+(cf>=0?'pos':'neg');
+  $('mBE').textContent=fmt0(breakeven);
+
+  $('tFed').textContent=fmt0(fedBen);
+  $('tMn').textContent=fmt0(mnBen);
+  $('tYou').textContent=fmt0(yourBen);
+  $('tFilBen').textContent=filUses?fmt0(filBen):'$0 (suspended)';
+  $('tFam').textContent=fmt0(familyBen);
+  $('tAfter').textContent=fmt(yourAfter)+' / '+fmt(filAfter)+' yr';
+  const cflag=$('capflag');
+  if(capped){cflag.style.display='block';cflag.textContent='⚑ Your share of the loss exceeds the $512k joint cap — the excess defers as an NOL (only relevant near 100% ownership).';}
+  else cflag.style.display='none';
+  if(!matpart){cflag.style.display='block';cflag.textContent='⚑ Without material participation, the losses suspend — no current tax benefit to you either.';}
+
+  // ---- 5-year arc ----
+  const ramp=[0.70,0.875,1.0,1.03,1.0609];
+  let filBank=0, body='';
+  for(let y=0;y<5;y++){
+    const rev=revenue*ramp[y];
+    const ox=opex*Math.pow(1.03,y);
+    const ld=annualDebt(loan,rate,term);
+    const yi=year1Interest(loan,rate,term)*(1-0.012*y); // interest drifts down slightly
+    const cfy=rev-ox-reserve-ld;
+    const dep=(y===0)?fedDep:(building-csBonus)/27.5; // yr1 big, then SL
+    const mndep=(y===0)?mnDep:dep+bonus*0.80/5; // MN recovers 1/5 of addback yrs2-6
+    const fl=rev-ox-yi-dep;
+    const ml=rev-ox-yi-mndep;
+    const fedB=matpart?tax(income,FED)-tax(income-Math.max(0,-(fl*own)),FED):0;
+    const mnB=matpart?tax(income,MN)-tax(income-Math.max(0,-(ml*own)),MN):0;
+    const youAt=cfy*own+fedB+mnB;
+    let filB=0;
+    if(filUses){
+      filB=(tax(filIncome,FED)-tax(filIncome-Math.max(0,-(fl*(1-own))),FED))+(tax(filIncome,MN)-tax(filIncome-Math.max(0,-(ml*(1-own))),MN));
+    } else {
+      filBank+=Math.max(0,-(fl*(1-own)));
+    }
+    const filAt=cfy*(1-own)+filB;
+    body+='<tr><td>Year '+(y+1)+'</td><td>'+fmt0(rev)+'</td><td class="'+(youAt>=0?'pos':'neg')+'">'+fmt(youAt)+'</td><td class="'+(filAt>=0?'pos':'neg')+'">'+fmt(filAt)+'</td><td>'+(filUses?'—':fmt0(filBank))+'</td></tr>';
+  }
+  $('projBody').innerHTML=body;
+}
+
+// listeners
+document.querySelectorAll('input').forEach(el=>el.addEventListener('input',calc));
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on'); $('revenue').value=c.dataset.rev; calc();
+}));
+$('reset').addEventListener('click',()=>{
+  const d={price:1250000,yourCash:150000,filCash:150000,rate:6.75,term:30,ownership:50,revenue:120000,opex:65500,reserve:12500,income:504000,filIncome:560000,landpct:35,costseg:27,ffe:120000};
+  for(const k in d)$(k).value=d[k];
+  $('furnished').checked=true;$('matpart').checked=true;$('filuses').checked=true;
+  document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  document.querySelector('.chip[data-rev="120000"]').classList.add('on');
+  calc();
+});
+calc();
+</script>
+</body>
+</html>
